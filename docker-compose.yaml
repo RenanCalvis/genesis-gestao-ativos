@@ -1,0 +1,23 @@
+services:
+  app:
+    build: .
+    container_name: genesis_app
+    ports:
+      - "8080:80"
+    volumes:
+      - ./app:/var/www/html
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:14
+    container_name: entrevista_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "postgres"
+      POSTGRES_DB: entrevista
+    ports:
+      - "5432:5432"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./storage/database:/var/lib/postgresql/data
