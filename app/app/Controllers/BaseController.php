@@ -28,8 +28,11 @@ abstract class BaseController extends Controller
     // protected $session;
 
     /**
-     * @return void
+     * Helpers carregados globalmente em todos os controllers filhos.
+     * label_helper expõe asset_type_badge(), establishment_type_badge(), etc.
      */
+    protected $helpers = ['url', 'form'];
+
     public function initController(RequestInterface $request, ResponseInterface $response, LoggerInterface $logger)
     {
         // Load here all helpers you want to be available in your controllers that extend BaseController.
