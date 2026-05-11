@@ -45,7 +45,7 @@ class AssetService
             'name'                    => $data['name'],
             'code'                    => $data['code'],
             'type'                    => $data['type'],
-            'entry_date'              => date('Y-m-d H:i:s'),
+            'entry_date'              => $data['entry_date'],
         ]);
     }
 
@@ -62,6 +62,7 @@ class AssetService
             'name'                    => $data['name'],
             'code'                    => $data['code'],
             'type'                    => $data['type'],
+            'entry_date'              => $data['entry_date'],
         ]);
     }
 

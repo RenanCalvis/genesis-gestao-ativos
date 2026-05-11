@@ -112,6 +112,7 @@ final class AssetServiceTest extends CIUnitTestCase
             'name' => 'Mesa',
             'code' => '001',
             'type' => 'OWNED',
+            'entry_date' => '2023-01-01',
         ]);
     }
 }

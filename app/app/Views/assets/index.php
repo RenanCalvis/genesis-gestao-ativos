@@ -112,7 +112,8 @@ $this->section('title'); echo 'Inventário de Patrimônios'; $this->endSection()
                             data-name="<?= esc($asset['name']) ?>"
                             data-code="<?= esc($asset['code']) ?>"
                             data-type="<?= esc($asset['type']) ?>"
-                            data-parent="<?= esc($asset['parent_establishment_id']) ?>">
+                            data-parent="<?= esc($asset['parent_establishment_id']) ?>"
+                            data-entry="<?= date('Y-m-d', strtotime($asset['entry_date'])) ?>">
                             <i class="bi bi-pencil"></i>Editar
                         </button>
                         <button class="btn-app-danger btn-open-decomm"
@@ -264,6 +265,10 @@ $this->section('title'); echo 'Inventário de Patrimônios'; $this->endSection()
                 </select>
             </div>
             <div class="mb-3">
+                <label class="form-label-app">Data de Entrada Física</label>
+                <input type="date" id="create-entry-date" name="entry_date" class="form-control-app" required>
+            </div>
+            <div class="mb-3">
                 <label class="form-label-app">Unidade de Origem</label>
                 <select id="create-parent" name="parent_establishment_id" class="form-select-app" required>
                     <option value="">— Selecione —</option>
@@ -317,6 +322,10 @@ $this->section('title'); echo 'Inventário de Patrimônios'; $this->endSection()
                     <option value="RENTED">Alugado</option>
                     <option value="BORROWED">Emprestado</option>
                 </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label-app">Data de Entrada Física</label>
+                <input type="date" id="edit-entry-date" name="entry_date" class="form-control-app" required>
             </div>
             <div class="mb-3">
                 <label class="form-label-app">Unidade de Origem</label>
@@ -513,6 +522,7 @@ $(function () {
         $('#edit-code').val($b.data('code'));
         $('#edit-type').val($b.data('type'));
         $('#edit-parent').val($b.data('parent'));
+        $('#edit-entry-date').val($b.data('entry'));
         $('#edit-feedback').hide().text('');
         editModal.show();
     });

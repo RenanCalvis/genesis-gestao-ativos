@@ -116,6 +116,13 @@ class AssetController extends BaseController
                     'in_list'  => 'A Situação selecionada é inválida.',
                 ],
             ],
+            'entry_date' => [
+                'rules'  => 'required|valid_date',
+                'errors' => [
+                    'required'   => 'A Data de Entrada é obrigatória.',
+                    'valid_date' => 'A Data de Entrada deve ser válida.',
+                ],
+            ],
             'parent_establishment_id' => [
                 'rules'  => 'required',
                 'errors' => [
@@ -170,6 +177,13 @@ class AssetController extends BaseController
                 'errors' => [
                     'required' => 'O campo Situação (Tipo) é obrigatório.',
                     'in_list'  => 'A Situação selecionada é inválida.',
+                ],
+            ],
+            'entry_date' => [
+                'rules'  => 'required|valid_date',
+                'errors' => [
+                    'required'   => 'A Data de Entrada é obrigatória.',
+                    'valid_date' => 'A Data de Entrada deve ser válida.',
                 ],
             ],
             'parent_establishment_id' => [
