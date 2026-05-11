@@ -34,20 +34,22 @@ cp app/.env.example app/.env
 **No Windows (PowerShell / CMD):**
 
 ```bash
-copy app\.env.example app\.env
+copy app/.env.example app/.env
 ```
 
 **Opção 1: Usando apenas o Docker (Recomendado)**
 ```bash
 
 # 1. Suba os containers em background (Banco de Dados e Aplicação)
-
 docker-compose up -d
 
-# 2. Recrie as tabelas com índices e popule com a massa de dados automatizada
+# 2. Instalar dependências ignorando checagens de plataforma do container temporário
+docker run --rm -it -v "$(pwd)/app":/app composer install --ignore-platform-reqs
+
+# 3. Recrie as tabelas com índices e popule com a massa de dados automatizada
 docker-compose exec app php spark migrate:refresh && docker-compose exec app php spark db:seed DatabaseSeeder
 
-# 3. Rode a suíte de testes unitários da camada de Serviços
+# 4. Rode a suíte de testes unitários da camada de Serviços
 docker-compose exec app php vendor/bin/phpunit tests
 
 ````
@@ -56,6 +58,7 @@ docker-compose exec app php vendor/bin/phpunit tests
 No Windows com Docker Desktop atualizado, geralmente não utilizamos o hífen entre as palavras:
 ```cmd
 docker compose up -d
+docker run --rm -it -v "${PWD}/app":/app composer install --ignore-platform-reqs
 docker compose exec app php spark migrate:refresh
 docker compose exec app php spark db:seed DatabaseSeeder
 docker compose exec app php vendor/bin/phpunit tests
