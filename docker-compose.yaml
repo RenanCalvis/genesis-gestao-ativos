@@ -2,6 +2,8 @@ services:
   app:
     build: .
     container_name: genesis_app
+    environment:
+      TZ: America/Campo_Grande
     ports:
       - "8080:80"
     volumes:
@@ -16,6 +18,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: "postgres"
       POSTGRES_DB: entrevista
+      TZ: America/Campo_Grande
     ports:
       - "5432:5432"
     volumes:
