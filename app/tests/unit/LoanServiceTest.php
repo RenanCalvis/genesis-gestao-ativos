@@ -52,7 +52,6 @@ final class LoanServiceTest extends CIUnitTestCase
         ]);
     }
 
-    // mock establishment find
     private function mockEstablishments(array $byId): EstablishmentModel
     {
         $mock = $this->getMockBuilder(EstablishmentModel::class)
@@ -67,7 +66,6 @@ final class LoanServiceTest extends CIUnitTestCase
         return $mock;
     }
 
-    // mock asset find
     private function mockAsset(?array $asset): AssetModel
     {
         $mock = $this->getMockBuilder(AssetModel::class)
@@ -80,21 +78,20 @@ final class LoanServiceTest extends CIUnitTestCase
         return $mock;
     }
 
-    // mock loan insert e find
     private function mockLoanSuccess(array $loanReturn): LoanModel
     {
         $mock = $this->getMockBuilder(LoanModel::class)
             ->disableOriginalConstructor()
-            ->onlyMethods(['insert', 'find'])
+            ->onlyMethods(['insert', 'find', 'isAssetOut'])
             ->getMock();
 
         $mock->method('insert')->willReturn(true);
         $mock->method('find')->willReturn($loanReturn);
+        $mock->method('isAssetOut')->willReturn(false);
 
         return $mock;
     }
 
-    // teste de caminho feliz
 
     public function testCreateLoanSucceedsWhenEstablishmentsHaveSameTypeAndAssetIsActive(): void
     {
@@ -132,6 +129,7 @@ final class LoanServiceTest extends CIUnitTestCase
             $lender['id'],
             $asset['id'],
             $checkedOut,
+            $expectedDue
         );
 
         // Assert
@@ -140,7 +138,6 @@ final class LoanServiceTest extends CIUnitTestCase
         $this->assertNull($result['returned_at']);
     }
 
-    // test guard tipos incompativeis
 
     public function testCreateLoanThrowsWhenEstablishmentsHaveDifferentTypes(): void
     {
@@ -165,10 +162,9 @@ final class LoanServiceTest extends CIUnitTestCase
         $this->expectExceptionMessageMatches('/tipos diferentes/i');
 
         // Act
-        $service->createLoan($requester['id'], $lender['id'], $asset['id'], '2025-06-01 08:00:00');
+        $service->createLoan($requester['id'], $lender['id'], $asset['id'], '2025-06-01 08:00:00', '2025-06-05 08:00:00');
     }
 
-    // test guard patrimonio baixado
 
     public function testCreateLoanThrowsWhenAssetIsDecommissioned(): void
     {
@@ -193,37 +189,95 @@ final class LoanServiceTest extends CIUnitTestCase
         $this->expectExceptionMessageMatches('/descomissionado/i');
 
         // Act
-        $service->createLoan($requester['id'], $lender['id'], $asset['id'], '2025-06-01 08:00:00');
+        $service->createLoan($requester['id'], $lender['id'], $asset['id'], '2025-06-01 08:00:00', '2025-06-05 08:00:00');
     }
 
-    // test calculo de sla com limite definido
 
-    public function testCalculateDueDateRespectsLenderMaxLoanDays(): void
+    public function testCreateLoanThrowsWhenAssetIsAlreadyOut(): void
     {
         // Arrange
-        $service     = new LoanService();
-        $checkedOut  = '2025-07-01 00:00:00';
-        $maxLoanDays = 5;
+        $requester = $this->makeEstablishment('CLINICA');
+        $lender    = $this->makeEstablishment('CLINICA');
+        $lender['id'] = 'aaaaaaaa-0000-4000-8000-000000000002';
+        $asset = $this->makeActiveAsset();
 
-        // Act
-        $dueDate = $service->calculateDueDate($checkedOut, $maxLoanDays);
+        $loanMock = $this->getMockBuilder(LoanModel::class)->disableOriginalConstructor()->getMock();
+        $loanMock->method('isAssetOut')->willReturn(true); // Simulando que já está emprestado
+
+        $service = new LoanService(
+            $this->mockEstablishments([
+                $requester['id'] => $requester,
+                $lender['id']    => $lender,
+            ]),
+            $this->mockAsset($asset),
+            $loanMock
+        );
 
         // Assert
-        $this->assertSame('2025-07-06 00:00:00', $dueDate);
-    }
-
-    public function testCalculateDueDateFallsBackTo365DaysWhenMaxLoanDaysIsNull(): void
-    {
-        // Arrange
-        $service    = new LoanService();
-        $checkedOut = '2025-01-01 00:00:00';
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessageMatches('/já está em uso/i');
 
         // Act
-        $dueDate = $service->calculateDueDate($checkedOut, null);
+        $service->createLoan($requester['id'], $lender['id'], $asset['id'], '2025-06-01 08:00:00', '2025-06-05 08:00:00');
+    }
 
-        // assert 365 dias depois
-        $expected = date('Y-m-d H:i:s', strtotime($checkedOut . ' +365 days'));
-        $this->assertSame($expected, $dueDate);
+
+    public function testCreateLoanThrowsWhenDueDateExceedsMaxLoanDays(): void
+    {
+        // Arrange
+        $requester = $this->makeEstablishment('CLINICA');
+        $lender    = $this->makeEstablishment('CLINICA', 5); // limite de 5 dias
+        $lender['id'] = 'aaaaaaaa-0000-4000-8000-000000000002';
+        $asset = $this->makeActiveAsset();
+
+        $service = new LoanService(
+            $this->mockEstablishments([
+                $requester['id'] => $requester,
+                $lender['id']    => $lender,
+            ]),
+            $this->mockAsset($asset),
+            $this->getMockBuilder(LoanModel::class)->disableOriginalConstructor()->getMock()
+        );
+
+        // Assert
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessageMatches('/excede o limite máximo/i');
+
+        // Act: Tentando pegar por 10 dias quando o max é 5
+        $service->createLoan($requester['id'], $lender['id'], $asset['id'], '2025-06-01 00:00:00', '2025-06-11 00:00:00');
+    }
+
+    public function testCreateLoanSucceedsWhenMaxLoanDaysIsNullAndDueDateIsFar(): void
+    {
+        // Arrange
+        $requester = $this->makeEstablishment('CLINICA');
+        $lender    = $this->makeEstablishment('CLINICA', null); // sem limite
+        $lender['id'] = 'aaaaaaaa-0000-4000-8000-000000000002';
+        $asset = $this->makeActiveAsset();
+
+        $expectedLoan = [
+            'id' => 'cccccccc',
+            'requester_establishment_id' => $requester['id'],
+            'lender_establishment_id' => $lender['id'],
+            'asset_id' => $asset['id'],
+            'checked_out_at' => '2025-06-01 00:00:00',
+            'due_date' => '2030-06-01 00:00:00',
+            'returned_at' => null
+        ];
+
+        $service = new LoanService(
+            $this->mockEstablishments([
+                $requester['id'] => $requester,
+                $lender['id']    => $lender,
+            ]),
+            $this->mockAsset($asset),
+            $this->mockLoanSuccess($expectedLoan)
+        );
+
+        // Act: 5 anos de emprestimo, tem que passar pois limite é null
+        $result = $service->createLoan($requester['id'], $lender['id'], $asset['id'], '2025-06-01 00:00:00', '2030-06-01 00:00:00');
+
+        $this->assertNotNull($result);
     }
 
     // test entidades inexistentes
@@ -242,7 +296,7 @@ final class LoanServiceTest extends CIUnitTestCase
         $this->expectExceptionMessageMatches('/solicitante não encontrado/i');
 
         // Act
-        $service->createLoan('id-inexistente', 'id-qualquer', 'asset-id', '2025-06-01 08:00:00');
+        $service->createLoan('id-inexistente', 'id-qualquer', 'asset-id', '2025-06-01 08:00:00', '2025-06-05 08:00:00');
     }
 
     public function testCreateLoanThrowsWhenAssetNotFound(): void
@@ -266,6 +320,6 @@ final class LoanServiceTest extends CIUnitTestCase
         $this->expectExceptionMessageMatches('/Patrimônio não encontrado/i');
 
         // Act
-        $service->createLoan($requester['id'], $lender['id'], 'asset-id-invalido', '2025-06-01 08:00:00');
+        $service->createLoan($requester['id'], $lender['id'], 'asset-id-invalido', '2025-06-01 08:00:00', '2025-06-05 08:00:00');
     }
 }

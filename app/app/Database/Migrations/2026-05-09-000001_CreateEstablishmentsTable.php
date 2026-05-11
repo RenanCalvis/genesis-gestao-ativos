@@ -51,6 +51,9 @@ class CreateEstablishmentsTable extends Migration
         $this->forge->addPrimaryKey('id');
         $this->forge->addUniqueKey('cnpj');
 
+        $this->forge->addKey('name');
+        $this->forge->addKey('deleted_at');
+
         $this->forge->createTable('establishments');
     }
 

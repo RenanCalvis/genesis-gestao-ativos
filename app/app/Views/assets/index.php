@@ -1,10 +1,5 @@
 <?php
 /**
- * Views/assets/index.php
- * Inventário de patrimônios — estende o layout base.
- * Requer: label_helper (carregado pelo BaseController).
- *
- * Variáveis injetadas pelo AssetController::index():
  *
  * @var array<int, array{
  *   id:                      string,
@@ -44,7 +39,24 @@ $this->section('title'); echo 'Inventário de Patrimônios'; $this->endSection()
     </div>
 </div>
 
-<div class="card-app">
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <form method="get" class="d-flex gap-2 w-50">
+        <input type="text" name="search" class="form-control-app shadow-sm" placeholder="Buscar código ou nome..." value="<?= esc($search ?? '') ?>">
+        <select name="status" class="form-select-app shadow-sm" style="width: auto;">
+            <option value="active" <?= ($status === 'active' || empty($status)) ? 'selected' : '' ?>>Somente Ativos</option>
+            <option value="decommissioned" <?= ($status === 'decommissioned') ? 'selected' : '' ?>>Somente Baixados</option>
+            <option value="all" <?= ($status === 'all') ? 'selected' : '' ?>>Todos</option>
+        </select>
+        <button type="submit" class="btn btn-secondary btn-sm px-3 shadow-sm"><i class="bi bi-search"></i></button>
+    </form>
+    
+    <button class="btn-app-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#createAssetModal">
+        <i class="bi bi-plus-circle"></i> Novo Patrimônio
+    </button>
+</div>
+
+<div class="card-app shadow-sm">
+
     <?php if (empty($assets)): ?>
     <div class="empty-state">
         <i class="bi bi-inbox"></i>
@@ -95,6 +107,14 @@ $this->section('title'); echo 'Inventário de Patrimônios'; $this->endSection()
                             data-lender-name="<?= esc($asset['establishment_name']) ?>">
                             <i class="bi bi-arrow-left-right"></i>Emprestar
                         </button>
+                        <button class="btn btn-sm btn-outline-secondary btn-open-edit"
+                            data-id="<?= esc($asset['id']) ?>"
+                            data-name="<?= esc($asset['name']) ?>"
+                            data-code="<?= esc($asset['code']) ?>"
+                            data-type="<?= esc($asset['type']) ?>"
+                            data-parent="<?= esc($asset['parent_establishment_id']) ?>">
+                            <i class="bi bi-pencil"></i>Editar
+                        </button>
                         <button class="btn-app-danger btn-open-decomm"
                             id="btn-decomm-<?= esc($asset['id']) ?>"
                             data-asset-id="<?= esc($asset['id']) ?>"
@@ -108,11 +128,16 @@ $this->section('title'); echo 'Inventário de Patrimônios'; $this->endSection()
         <?php endforeach; ?>
         </tbody>
     </table>
+    
+    <div class="mt-4 mb-2 pe-4 d-flex justify-content-end">
+        <?= $pager->links() ?>
+    </div>
+    
     </div>
     <?php endif; ?>
 </div>
 
-<!-- ═══ Modal: Empréstimo ═══ -->
+ <!-- Modal Emprestimo -->
 <div class="modal fade modal-app" id="loanModal" tabindex="-1" aria-labelledby="loanModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -149,12 +174,11 @@ $this->section('title'); echo 'Inventário de Patrimônios'; $this->endSection()
             </div>
             <div class="mb-2">
                 <label class="form-label-app" for="loan-checked-out">Data de Retirada</label>
-                <input type="datetime-local" id="loan-checked-out" name="checked_out_at"
-                       class="form-control-app" required>
+                <input type="datetime-local" id="loan-checked-out" name="checked_out_at" class="form-control-app" required>
             </div>
-            <div class="sla-chip" id="loan-sla-chip">
-                <i class="bi bi-calendar-check"></i>
-                <span id="loan-sla-text"></span>
+            <div class="mb-2">
+                <label class="form-label-app" for="loan-due-date">Data Prevista de Devolução</label>
+                <input type="datetime-local" id="loan-due-date" name="due_date" class="form-control-app" required>
             </div>
         </form>
       </div>
@@ -169,7 +193,7 @@ $this->section('title'); echo 'Inventário de Patrimônios'; $this->endSection()
   </div>
 </div>
 
-<!-- ═══ Modal: Baixa ═══ -->
+<!-- Modal: Baixa  -->
 <div class="modal fade modal-app" id="decommModal" tabindex="-1" aria-labelledby="decommModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -209,6 +233,115 @@ $this->section('title'); echo 'Inventário de Patrimônios'; $this->endSection()
   </div>
 </div>
 
+<!-- Modal criar patrimonio -->
+<div class="modal fade modal-app" id="createAssetModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+            <i class="bi bi-plus-circle me-2" style="color:var(--accent)"></i>Novo Patrimônio
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <div id="create-feedback" class="alert-app" role="alert"></div>
+        <form id="create-asset-form">
+            <div class="mb-3">
+                <label class="form-label-app">Nome do Item</label>
+                <input type="text" id="create-name" name="name" class="form-control-app" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label-app">Código / Tag</label>
+                <input type="text" id="create-code" name="code" class="form-control-app" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label-app">Situação (Tipo)</label>
+                <select id="create-type" name="type" class="form-select-app" required>
+                    <option value="">— Selecione —</option>
+                    <option value="OWNED">Próprio</option>
+                    <option value="RENTED">Alugado</option>
+                    <option value="BORROWED">Emprestado</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label-app">Unidade de Origem</label>
+                <select id="create-parent" name="parent_establishment_id" class="form-select-app" required>
+                    <option value="">— Selecione —</option>
+                    <?php foreach ($establishments as $est): ?>
+                    <option value="<?= esc($est['id']) ?>">
+                        <?= esc($est['name']) ?> — <?= \App\Enums\EstablishmentType::tryFrom($est['type'])?->label() ?? esc($est['type']) ?>
+                    </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" id="btn-confirm-create" class="btn-app-primary px-4">
+            <span id="btn-create-spinner" class="spinner-border spinner-border-sm d-none"></span>
+            Cadastrar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal editar patrimonio -->
+<div class="modal fade modal-app" id="editAssetModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+            <i class="bi bi-pencil me-2" style="color:var(--accent)"></i>Editar Patrimônio
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <div id="edit-feedback" class="alert-app" role="alert"></div>
+        <form id="edit-asset-form">
+            <input type="hidden" id="edit-id">
+            <div class="mb-3">
+                <label class="form-label-app">Nome do Item</label>
+                <input type="text" id="edit-name" name="name" class="form-control-app" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label-app">Código / Tag</label>
+                <input type="text" id="edit-code" name="code" class="form-control-app" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label-app">Situação (Tipo)</label>
+                <select id="edit-type" name="type" class="form-select-app" required>
+                    <option value="">— Selecione —</option>
+                    <option value="OWNED">Próprio</option>
+                    <option value="RENTED">Alugado</option>
+                    <option value="BORROWED">Emprestado</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label-app">Unidade de Origem</label>
+                <select id="edit-parent" name="parent_establishment_id" class="form-select-app" required>
+                    <option value="">— Selecione —</option>
+                    <?php foreach ($establishments as $est): ?>
+                    <option value="<?= esc($est['id']) ?>">
+                        <?= esc($est['name']) ?> — <?= \App\Enums\EstablishmentType::tryFrom($est['type'])?->label() ?? esc($est['type']) ?>
+                    </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" id="btn-confirm-edit" class="btn-app-primary px-4">
+            <span id="btn-edit-spinner" class="spinner-border spinner-border-sm d-none"></span>
+            Salvar Alterações
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
@@ -221,10 +354,18 @@ $(function () {
         return d.toISOString().slice(0, 16);
     }
 
-    function showFeedback($el, type, msg) {
+    function showFeedback($el, type, msg, errors = null) {
+        let html = msg;
+        if (errors && Object.keys(errors).length > 0) {
+            html += '<ul class="mb-0 mt-1" style="font-size: 0.85rem">';
+            for (let key in errors) {
+                html += `<li>${errors[key]}</li>`;
+            }
+            html += '</ul>';
+        }
         $el.removeClass('alert-success alert-danger')
            .addClass(type === 'success' ? 'alert-success' : 'alert-danger')
-           .html(msg).show();
+           .html(html).show();
     }
 
     function formatDateBR(isoStr) {
@@ -242,8 +383,8 @@ $(function () {
         $('#loan-lender-name').val($b.data('lender-name'));
         $('#loan-requester').val('');
         $('#loan-checked-out').val(nowDatetimeLocal());
+        $('#loan-due-date').val('');
         $('#loan-feedback').hide().text('');
-        $('#loan-sla-chip').removeClass('visible');
         loanModal.show();
     });
 
@@ -252,17 +393,22 @@ $(function () {
         const $spinner  = $('#btn-loan-spinner');
         const $feedback = $('#loan-feedback');
 
-        const checkedOut = $('#loan-checked-out').val().replace('T', ' ') + ':00';
-
         if (! $('#loan-requester').val()) {
             showFeedback($feedback, 'error', 'Selecione a unidade solicitante.');
             return;
         }
 
+        if (! $('#loan-checked-out').val() || ! $('#loan-due-date').val()) {
+            showFeedback($feedback, 'error', 'As datas de retirada e devolução são obrigatórias.');
+            return;
+        }
+
+        const checkedOut = $('#loan-checked-out').val().replace('T', ' ') + ':00';
+        const dueDate    = $('#loan-due-date').val().replace('T', ' ') + ':00';
+
         $btn.prop('disabled', true);
         $spinner.removeClass('d-none');
         $feedback.hide();
-        $('#loan-sla-chip').removeClass('visible');
 
         $.ajax({
             url: BASE + '/loans',
@@ -272,20 +418,21 @@ $(function () {
                 lender_establishment_id:    $('#loan-lender-id').val(),
                 requester_establishment_id: $('#loan-requester').val(),
                 checked_out_at:             checkedOut,
+                due_date:                   dueDate,
             },
             success(res) {
                 showFeedback($feedback, 'success', res.message);
-                $('#loan-sla-text').text('Devolução prevista: ' + formatDateBR(res.due_date));
-                $('#loan-sla-chip').addClass('visible');
+                setTimeout(() => window.location.reload(), 1000);
             },
             error(xhr) {
-                showFeedback($feedback, 'error', (xhr.responseJSON ?? {}).message || 'Erro ao registrar empréstimo.');
+                const res = xhr.responseJSON ?? {};
+                showFeedback($feedback, 'error', res.message || 'Erro ao registrar empréstimo.', res.errors);
             },
             complete() { $btn.prop('disabled', false); $spinner.addClass('d-none'); },
         });
     });
 
-    /* ── Modal Baixa ── */
+    /*  Modal Baixa  */
     const decommModal = new bootstrap.Modal('#decommModal');
 
     $(document).on('click', '.btn-open-decomm', function () {
@@ -323,7 +470,74 @@ $(function () {
                 }, 1100);
             },
             error(xhr) {
-                showFeedback($feedback, 'error', (xhr.responseJSON ?? {}).message || 'Erro ao baixar patrimônio.');
+                const res = xhr.responseJSON ?? {};
+                showFeedback($feedback, 'error', res.message || 'Erro ao baixar patrimônio.', res.errors);
+            },
+            complete() { $btn.prop('disabled', false); $spinner.addClass('d-none'); },
+        });
+    });
+
+    const createModal = new bootstrap.Modal('#createAssetModal');
+
+    $('#btn-confirm-create').on('click', function () {
+        const $btn      = $(this);
+        const $spinner  = $('#btn-create-spinner');
+        const $feedback = $('#create-feedback');
+
+        $btn.prop('disabled', true);
+        $spinner.removeClass('d-none');
+        $feedback.hide();
+
+        $.ajax({
+            url: BASE + '/assets',
+            method: 'POST',
+            data: $('#create-asset-form').serialize(),
+            success(res) {
+                showFeedback($feedback, 'success', res.message);
+                setTimeout(() => window.location.reload(), 1000);
+            },
+            error(xhr) {
+                const res = xhr.responseJSON ?? {};
+                showFeedback($feedback, 'error', res.message || 'Erro ao cadastrar patrimônio.', res.errors);
+            },
+            complete() { $btn.prop('disabled', false); $spinner.addClass('d-none'); },
+        });
+    });
+
+    const editModal = new bootstrap.Modal('#editAssetModal');
+
+    $(document).on('click', '.btn-open-edit', function () {
+        const $b = $(this);
+        $('#edit-id').val($b.data('id'));
+        $('#edit-name').val($b.data('name'));
+        $('#edit-code').val($b.data('code'));
+        $('#edit-type').val($b.data('type'));
+        $('#edit-parent').val($b.data('parent'));
+        $('#edit-feedback').hide().text('');
+        editModal.show();
+    });
+
+    $('#btn-confirm-edit').on('click', function () {
+        const $btn      = $(this);
+        const $spinner  = $('#btn-edit-spinner');
+        const $feedback = $('#edit-feedback');
+        const id        = $('#edit-id').val();
+
+        $btn.prop('disabled', true);
+        $spinner.removeClass('d-none');
+        $feedback.hide();
+
+        $.ajax({
+            url: BASE + '/assets/update/' + id,
+            method: 'POST',
+            data: $('#edit-asset-form').serialize(),
+            success(res) {
+                showFeedback($feedback, 'success', res.message);
+                setTimeout(() => window.location.reload(), 1000);
+            },
+            error(xhr) {
+                const res = xhr.responseJSON ?? {};
+                showFeedback($feedback, 'error', res.message || 'Erro ao editar patrimônio.', res.errors);
             },
             complete() { $btn.prop('disabled', false); $spinner.addClass('d-none'); },
         });

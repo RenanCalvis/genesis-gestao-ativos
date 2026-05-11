@@ -54,6 +54,12 @@ class CreateLoansTable extends Migration
         $this->forge->addForeignKey('lender_establishment_id', 'establishments', 'id', 'RESTRICT', 'RESTRICT');
         $this->forge->addForeignKey('asset_id', 'assets', 'id', 'RESTRICT', 'RESTRICT');
 
+        $this->forge->addKey('requester_establishment_id');
+        $this->forge->addKey('lender_establishment_id');
+        $this->forge->addKey('asset_id');
+        $this->forge->addKey('returned_at');
+        $this->forge->addKey('due_date');
+
         $this->forge->createTable('loans');
     }
 

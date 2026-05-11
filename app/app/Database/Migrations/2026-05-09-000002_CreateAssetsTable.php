@@ -60,6 +60,11 @@ class CreateAssetsTable extends Migration
         $this->forge->addUniqueKey('code');
         $this->forge->addForeignKey('parent_establishment_id', 'establishments', 'id', 'RESTRICT', 'RESTRICT');
 
+        $this->forge->addKey('name');
+        $this->forge->addKey('type');
+        $this->forge->addKey('parent_establishment_id');
+        $this->forge->addKey('decommissioned_at');
+
         $this->forge->createTable('assets');
 
         $this->db->query('

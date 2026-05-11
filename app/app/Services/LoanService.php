@@ -23,6 +23,7 @@ class LoanService
         string $lenderEstablishmentId,
         string $assetId,
         string $checkedOutAt,
+        string $dueDate,
     ): array {
         if ($requesterEstablishmentId === $lenderEstablishmentId) {
             throw new InvalidArgumentException(
@@ -55,8 +56,25 @@ class LoanService
             );
         }
 
+
+        if ($this->loanModel->isAssetOut($assetId)) {
+            throw new InvalidArgumentException(
+                'Empréstimo negado: o patrimônio já está em uso por outro estabelecimento e ainda não foi devolvido.'
+            );
+        }
+
         $maxLoanDays = $lender['max_loan_days'] !== null ? (int) $lender['max_loan_days'] : null;
-        $dueDate     = $this->calculateDueDate($checkedOutAt, $maxLoanDays);
+
+        if ($maxLoanDays !== null) {
+            $diffSeconds = strtotime($dueDate) - strtotime($checkedOutAt);
+            $diffDays    = (int) ceil($diffSeconds / 86400);
+
+            if ($diffDays > $maxLoanDays) {
+                throw new InvalidArgumentException(
+                    "A data prevista excede o limite máximo de empréstimo ({$maxLoanDays} dias) permitido pela unidade de origem."
+                );
+            }
+        }
 
         $loanId = $this->generateUuid();
 
@@ -77,11 +95,21 @@ class LoanService
         return $this->loanModel->find($loanId);
     }
 
-    public function calculateDueDate(string $checkedOutAt, ?int $maxLoanDays): string
+    public function returnLoan(string $loanId): void
     {
-        $days = $maxLoanDays ?? 365;
+        $loan = $this->loanModel->find($loanId);
 
-        return date('Y-m-d H:i:s', strtotime("{$checkedOutAt} +{$days} days"));
+        if ($loan === null) {
+            throw new InvalidArgumentException('Empréstimo não encontrado.');
+        }
+
+        if ($loan['returned_at'] !== null) {
+            throw new InvalidArgumentException('Este empréstimo já foi devolvido.');
+        }
+
+        if ($this->loanModel->update($loanId, ['returned_at' => date('Y-m-d H:i:s')]) === false) {
+            throw new RuntimeException('Falha ao registrar a devolução no banco de dados.');
+        }
     }
 
     private function generateUuid(): string

@@ -14,7 +14,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 
     <!-- Design System global -->
-    <link href="<?= base_url('css/app.css') ?>" rel="stylesheet">
+    <link href="<?= base_url('css/app.css') ?>?v=<?= time() ?>" rel="stylesheet">
 
     <!-- CSS específico da página (opcional) -->
     <?= $this->renderSection('styles') ?>
@@ -24,6 +24,11 @@
 <div class="app-container">
     <!-- ── Sidebar ── -->
     <aside class="app-sidebar" id="mainSidebar">
+        <script>
+            if (localStorage.getItem('sidebar-collapsed') === 'true') {
+                document.getElementById('mainSidebar').classList.add('collapsed');
+            }
+        </script>
         <a href="<?= base_url('/') ?>" class="sidebar-brand">
             <span>G</span> <div class="brand-text">enesis</div>
         </a>
@@ -79,10 +84,6 @@
         const sidebar = document.getElementById('mainSidebar');
         const toggleBtn = document.getElementById('btnToggleSidebar');
 
-        // Restaura estado preferido do usuário
-        if (localStorage.getItem('sidebar-collapsed') === 'true') {
-            sidebar.classList.add('collapsed');
-        }
 
         toggleBtn.addEventListener('click', () => {
             sidebar.classList.toggle('collapsed');

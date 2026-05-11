@@ -5,18 +5,18 @@
 
 /* ── Design Tokens ───────────────────────────────────────────── */
 :root {
-  --bg: #0f1117;
-  --surface: #1a1d27;
-  --surface-2: #22263a;
-  --border: #2e3348;
-  --accent: #6366f1;
-  --accent-hover: #4f46e5;
-  --success: #22c55e;
+  --bg: #f8f9fa;
+  --surface: #ffffff;
+  --surface-2: #f1f5f9;
+  --border: #e2e8f0;
+  --accent: #3b3bff;
+  --accent-hover: #2626e8;
+  --success: #10b981;
   --danger: #ef4444;
   --warning: #f59e0b;
-  --info: #22d3ee;
-  --text: #e2e8f0;
-  --text-muted: #8b92a8;
+  --info: #0ea5e9;
+  --text: #1e293b;
+  --text-muted: #64748b;
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
@@ -122,10 +122,11 @@ body {
   color: var(--text);
 }
 .sidebar-link.active {
-  background: rgba(99, 102, 241, 0.12);
-  color: var(--accent);
-  border-left: 3px solid var(--accent);
-  /* box-shadow: inset 3px 0 0 var(--accent); */
+  background: var(--accent);
+  color: #ffffff;
+}
+.sidebar-link.active i {
+  color: #ffffff;
 }
 
 /* Toggle Footer */
@@ -250,11 +251,14 @@ body {
 .table-app {
   margin: 0;
   color: var(--text);
+  border-color: var(--border) !important;
+  --bs-table-border-color: var(--border);
+  border-bottom: 0 !important;
 }
 
 .table-app thead th {
   background: var(--surface-2);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--border) !important;
   color: var(--text-muted);
   font-size: 0.72rem;
   font-weight: 600;
@@ -266,8 +270,9 @@ body {
   border-bottom: 1px solid var(--border);
   transition: background 0.15s;
 }
-.table-app tbody tr:last-child {
-  border-bottom: none;
+.table-app tbody tr:last-child,
+.table-app tbody tr:last-child td {
+  border-bottom: 0 !important;
 }
 .table-app tbody tr:hover {
   background: var(--surface-2);
@@ -397,7 +402,7 @@ body {
   font-size: 1rem;
 }
 .modal-app .btn-close {
-  filter: invert(1) brightness(0.6);
+  filter: none;
 }
 
 /* ── Formulários (dentro de modais) ─────────────────────────── */
@@ -412,7 +417,7 @@ body {
 .form-control-app,
 .form-select-app {
   width: 100%;
-  background: var(--surface-2);
+  background: var(--surface);
   border: 1px solid var(--border);
   color: var(--text);
   border-radius: var(--radius-md);
@@ -426,17 +431,18 @@ body {
 .form-control-app:focus,
 .form-select-app:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
-  background: var(--surface-2);
+  box-shadow: 0 0 0 3px rgba(59, 59, 255, 0.18);
+  background: var(--surface);
   color: var(--text);
   outline: none;
 }
 .form-control-app[readonly] {
-  opacity: 0.6;
+  background: var(--surface-2);
+  opacity: 0.8;
   cursor: default;
 }
 .form-select-app option {
-  background: var(--surface-2);
+  background: var(--surface);
 }
 textarea.form-control-app {
   resize: vertical;
@@ -495,9 +501,50 @@ textarea.form-control-app {
 
 /* ── Code inline ─────────────────────────────────────────────── */
 code.app-code {
-  color: var(--accent);
-  background: rgba(99, 102, 241, 0.1);
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
   border-radius: 4px;
-  padding: 0.1em 0.4em;
+  padding: 0.2em 0.5em;
   font-size: 0.85em;
+  font-weight: 500;
+}
+
+/* ── Paginação Customizada ── */
+.pagination {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  gap: 0.35rem;
+  justify-content: flex-end;
+}
+.pagination li {
+  display: inline-block;
+}
+.pagination li a,
+.pagination li span {
+  color: var(--text-muted);
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 8px !important;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.35rem 0.75rem;
+  min-width: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+.pagination li.active a,
+.pagination li.active span {
+  background-color: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.pagination li a:hover {
+  background-color: var(--surface-2);
+  color: var(--text);
 }

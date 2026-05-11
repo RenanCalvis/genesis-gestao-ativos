@@ -16,4 +16,18 @@ class EstablishmentModel extends Model
     protected $allowedFields    = ['id', 'name', 'cnpj', 'type', 'max_loan_days'];
     protected $useTimestamps    = true;
     protected $deletedField     = 'deleted_at';
+
+    public function getPaginatedEstablishments(int $perPage = 10, ?string $search = null): array
+    {
+        if (! empty($search)) {
+            $this->groupStart()
+                 ->like('name', $search, 'both', null, true)
+                 ->orLike('cnpj', $search, 'both', null, true)
+                 ->groupEnd();
+        }
+
+        $this->orderBy('created_at', 'DESC');
+
+        return $this->paginate($perPage);
+    }
 }
